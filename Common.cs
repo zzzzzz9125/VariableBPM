@@ -15,7 +15,6 @@ namespace VariableBpm
         public static int VegasVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(Application.ExecutablePath).FileMajorPart;
         public static string AppFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.ApplicationData);
         public static string SettingsFolder = Path.Combine(VegasVersion < 14 ? Path.Combine(AppFolder, "Sony") : AppFolder, "VEGAS Pro", VegasVersion + ".0");
-        public static VariableBpmSettings Settings = new VariableBpmSettings().LoadFromFile();
 
         public static Color[] GetColors(this Vegas myVegas)
         {
