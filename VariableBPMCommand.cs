@@ -307,7 +307,7 @@ namespace VariableBpm
             {
                 for (int i = index + 1; i < markers.Count; i++)
                 {
-                    markers[index].Position += markers[index].Position - RippleMarkersSave[index].Position;
+                    markers[i].Position += markers[index].Position - RippleMarkersSave[index].Position;
                 }
             }
 
