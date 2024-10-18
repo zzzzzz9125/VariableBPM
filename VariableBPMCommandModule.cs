@@ -5,6 +5,7 @@ using Sony.Vegas;
 #endif
 
 using System.Collections;
+using System.Collections.Generic;
 
 namespace VariableBpm
 {
@@ -20,7 +21,7 @@ namespace VariableBpm
 
         public ICollection GetCustomCommands()
         {
-            var customCommands = new ArrayList();
+            List<CustomCommand> customCommands = new List<CustomCommand>();
 
             new VariableBpmCommand().VariableBpm(myVegas, category, ref customCommands);
 

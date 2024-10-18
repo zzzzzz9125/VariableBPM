@@ -6,8 +6,8 @@ namespace VariableBpm
     public class VariableBpmSettings
     {
         public string CurrentLanguage = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
-        public int DarkMode = 0, Interval = 1;
-        public bool AutoStart = false;
+        public int Interval = 1;
+        public bool AutoStart = false, RippleForMarkers = false;
 
         public VariableBpmSettings LoadFromFile(string filePath = null)
         {

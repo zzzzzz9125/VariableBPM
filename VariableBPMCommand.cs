@@ -14,7 +14,6 @@ using Newtonsoft.Json;
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
 using System.Linq;
-using Melanchall.DryWetMidi.Common;
 
 namespace VariableBpm
 {
@@ -26,10 +25,11 @@ namespace VariableBpm
         BpmPointList bpmPointList;
         Timer BpmTimer;
         BpmPoint PointSave;
-        bool Enable = false;
+        bool Enable = false, Rippling = false;
         bool Activated = true;
+        MarkerInfoList RippleMarkersSave = null;
 
-        internal void VariableBpm(Vegas Vegas, CommandCategory category, ref System.Collections.ArrayList CustomCommands)
+        internal void VariableBpm(Vegas Vegas, CommandCategory category, ref List<CustomCommand> CustomCommands)
         {
             myVegas = Vegas;
             L.Localize();
@@ -208,6 +208,17 @@ namespace VariableBpm
                 l.Controls.Add(autoStartBox);
                 l.SetColumnSpan(autoStartBox, 2);
 
+                CheckBox autoRippleBox = new CheckBox
+                {
+                    Text = L.RippleForMarkers,
+                    Margin = new Padding(6, 3, 0, 3),
+                    AutoSize = true,
+                    Checked = Common.Settings.RippleForMarkers
+                };
+
+                l.Controls.Add(autoRippleBox);
+                l.SetColumnSpan(autoRippleBox, 2);
+
                 FlowLayoutPanel panel = new FlowLayoutPanel
                 {
                     AutoSize = true,
@@ -228,6 +239,7 @@ namespace VariableBpm
                 if (form.ShowDialog() == DialogResult.OK)
                 {
                     Common.Settings.AutoStart = autoStartBox.Checked;
+                    Common.Settings.RippleForMarkers = autoRippleBox.Checked;
 
                     if (int.TryParse(intervalBox.Text, out int inter) && inter > 0 && inter != interval)
                     {
@@ -242,7 +254,65 @@ namespace VariableBpm
             };
             CustomCommands.Add(cmdSettings);
 
-            myVegas.MarkersChanged += delegate (object o, EventArgs e) { RefreshBpmList(); };
+            myVegas.MarkersChanged += delegate (object o, EventArgs e)
+            {
+                if (Common.Settings.RippleForMarkers)
+                {
+                    RippleForMarkers();
+                    RippleMarkersSave = MarkerInfoList.GetFrom(myVegas.Project.Markers);
+                }
+
+                RefreshBpmList();
+            };
+        }
+
+        public void RippleForMarkers()
+        {
+            if (Rippling)
+            {
+                return;
+            }
+
+            BaseMarkerList<Marker> markers = myVegas.Project.Markers;
+
+            if (RippleMarkersSave?.Count != markers.Count)
+            {
+                return;
+            }
+
+            int index = -1;
+            for (int i = 0; i < markers.Count; i++)
+            {
+                if (markers[i].Label != RippleMarkersSave[i].Label)
+                {
+                    return;
+                }
+
+                if (markers[i].Position != RippleMarkersSave[i].Position)
+                {
+                    index = i;
+                }
+            }
+
+            if (index < 0)
+            {
+                return;
+            }
+
+            bool enableSave = Enable;
+            Enable = false;
+            Rippling = true;
+
+            using (UndoBlock undo = new UndoBlock(L.RippleForMarkers))
+            {
+                for (int i = index + 1; i < markers.Count; i++)
+                {
+                    markers[index].Position += markers[index].Position - RippleMarkersSave[index].Position;
+                }
+            }
+
+            Enable = enableSave;
+            Rippling = false;
         }
 
         public void RefreshBpmList(bool manual = false)
@@ -325,7 +395,7 @@ namespace VariableBpm
                     bool reset = s.Contains("RESET");
                     if (reset) { offset = new Timecode(0); }
                     offset += string.IsNullOrEmpty(offsetStr) ? new Timecode(0) : Timecode.FromString(offsetStr, RulerFormat.MeasuresAndBeats, false);
-                    list.Add(new BpmPoint(m.Position, n, offset.ToString(RulerFormat.MeasuresAndBeats), reset, beats) { Marker = m });
+                    list.Add(new BpmPoint(m.Position, n, offset.ToString(RulerFormat.MeasuresAndBeats), reset, beats, m));
                 }
             }
 

@@ -18,13 +18,19 @@ namespace VariableBpm
         public uint Beats;
         public Marker Marker;
 
-        public BpmPoint(Timecode position, double bpm, string offset = null, bool isZeroPoint = false, uint beats = 4)
+        public BpmPoint(Timecode position, double bpm, string offset = null, bool isZeroPoint = false, uint beats = 4, Marker marker = null)
         {
             Position = position;
             Bpm = bpm;
             Offset = offset;
             IsZeroPoint = isZeroPoint;
             Beats = beats;
+            Marker = marker;
+        }
+
+        public static BpmPoint CopyFrom(BpmPoint p)
+        {
+            return new BpmPoint(p.Position, p.Bpm, p.Offset, p.IsZeroPoint, p.Beats, p.Marker);
         }
 
         public static bool operator ==(BpmPoint l, BpmPoint r)
@@ -39,16 +45,11 @@ namespace VariableBpm
 
     public class BpmPointList : List<BpmPoint>
     {
-        public List<MarkerInfo> MarkerInfos
+        public MarkerInfoList MarkerInfos
         {
             get
             {
-                List<MarkerInfo> infos = new List<MarkerInfo>();
-                foreach (BpmPoint p in this)
-                {
-                    infos.Add(new MarkerInfo(p.Marker.Position.ToMilliseconds() / 1000, p.Marker.Label));
-                }
-                return infos;
+                return MarkerInfoList.GetFrom(this);
             }
         }
 
