@@ -167,7 +167,7 @@ namespace VariableBpm
 
         public static string ConvertToTimecodeString(this BarBeatFractionTimeSpan span, bool isPosition = false)
         {
-            return Timecode.FromString(string.Format("{0}.{1}.{2}", span.Bars, (int)Math.Floor(span.Beats), (int)((span.Beats - Math.Floor(span.Beats)) * 64)), RulerFormat.MeasuresAndBeats, isPosition).ToString(RulerFormat.MeasuresAndBeats);
+            return Timecode.FromString(string.Format("{0}.{1}.{2}", span.Bars + 1, (int)Math.Floor(span.Beats) + 1, (int)((span.Beats - Math.Floor(span.Beats)) * 64)), RulerFormat.MeasuresAndBeats, isPosition).ToString(RulerFormat.MeasuresAndBeats);
         }
 
         public static BarBeatFractionTimeSpan ConvertToBarBeatFraction(this string str, bool isPosition = false)
