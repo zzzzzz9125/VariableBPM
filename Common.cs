@@ -107,5 +107,10 @@ namespace VariableBpm
                 }
             }
         }
+
+        public static void SetIconFile(this CustomCommand cmd, string fileName)
+        {
+            cmd.IconFile = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), fileName);
+        }
     }
 }

@@ -22,10 +22,12 @@ namespace VariableBpm
             VariableBpmCmd.DisplayName = L.VariableBpm;
             VariableBpmCmd.Invoked += VariableBpm_Invoked;
             VariableBpmCmd.MenuPopup += VariableBpmCommand_MenuPopup;
-			CustomCommands.Add(VariableBpmCmd);
+            VariableBpmCmd.SetIconFile("VariableBpm.png");
+            CustomCommands.Add(VariableBpmCmd);
 
             CustomCommand cmdManual = new CustomCommand(CommandCategory.Tools, "VariableBpm_Manual") { DisplayName = L.VariableBpmManualCmd };
             cmdManual.Invoked += delegate (object o, EventArgs e) { myVegas.RefreshBpmList(true); };
+            cmdManual.SetIconFile("VariableBpm.png");
             CustomCommands.Add(cmdManual);
 
             if (VariableBpmCommon.Settings.AutoStart)

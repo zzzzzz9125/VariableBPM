@@ -464,7 +464,7 @@ namespace VariableBpm
                 AutoSize = true,
                 Checked = VariableBpmCommon.Settings.RippleForMarkers
             };
-
+            
             settingsPanel.Controls.Add(autoRippleBox);
             settingsPanel.SetColumnSpan(autoRippleBox, 2);
 
