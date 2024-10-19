@@ -5,19 +5,18 @@ using Sony.Vegas;
 #endif
 
 using System;
+using System.IO;
+using System.Linq;
+using Newtonsoft.Json;
+using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.IO;
-using Newtonsoft.Json;
+
 using Melanchall.DryWetMidi.Core;
 using Melanchall.DryWetMidi.Interaction;
-using System.Linq;
 
 namespace VariableBpm
 {
-    public enum FileType { NotSupported, Midi, MarkerInfoList };
-
     public static class VariableBpmCommon
     {
         public static BpmPointList CurrentBpmPointList;
@@ -25,8 +24,8 @@ namespace VariableBpm
         public static BpmPoint PointSave;
         public static bool Enable = false, Rippling = false, Activated = true;
         public static MarkerInfoList RippleMarkersSave = null;
-        public static VariableBpmSettings Settings = new VariableBpmSettings().LoadFromFile();
-
+        public static VariableBpmSettings Settings = VariableBpmSettings.LoadFromFile();
+        public const string VERSION = "v1.00";
 
         public static void RippleForMarkers(this Vegas myVegas)
         {
@@ -92,7 +91,7 @@ namespace VariableBpm
                 return;
             }
 
-            BpmPointList list = GetBpmPointList(myVegas.Project.Markers);
+            BpmPointList list = myVegas.Project.Markers.GetBpmPointList();
 
             // Avoid problems that user can't undo. When user undos, MarkersChanged will be also called once, causing a conflict.
             if (manual || !list.IsTheSame(CurrentBpmPointList))
@@ -109,7 +108,7 @@ namespace VariableBpm
             }
         }
 
-        public static BpmPointList GetBpmPointList(BaseMarkerList<Marker> markers)
+        public static BpmPointList GetBpmPointList(this BaseMarkerList<Marker> markers)
         {
             BpmPointList list = new BpmPointList();
             Timecode offset = new Timecode(0);
@@ -166,109 +165,191 @@ namespace VariableBpm
             return list;
         }
 
-        public static void ImportMarkersFrom(this Vegas myVegas, string filePath, FileType type)
+        public static string ConvertToTimecodeString(this BarBeatFractionTimeSpan span, bool isPosition = false)
+        {
+            return Timecode.FromString(string.Format("{0}.{1}.{2}", span.Bars, (int)Math.Floor(span.Beats), (int)((span.Beats - Math.Floor(span.Beats)) * 64)), RulerFormat.MeasuresAndBeats, isPosition).ToString(RulerFormat.MeasuresAndBeats);
+        }
+
+        public static BarBeatFractionTimeSpan ConvertToBarBeatFraction(this string str, bool isPosition = false)
+        {
+            string[] strs = Regex.Split(str, @"\.");
+            int[] ints = new int[3];
+
+            for (int i = 0; i < Math.Min(strs.Length, 3); i++)
+            {
+                if (int.TryParse(strs[i], out int tmp))
+                {
+                    ints[i] = tmp;
+                }
+            }
+
+            return new BarBeatFractionTimeSpan(ints[0] - (isPosition ? 1 : 0), ints[1] - (isPosition ? 1 : 0) + ints[2] / 64.0);
+        }
+
+        public static string[] GetMidiStartEnd(this MidiFile midi)
+        {
+            string strZero = "1.1.000";
+            string[] strs = new string[] { strZero, strZero, strZero, strZero };
+            if (midi == null)
+            {
+                return strs;
+            }
+
+            strs[1] = midi.GetDuration<BarBeatFractionTimeSpan>().ConvertToTimecodeString(true);
+
+            ICollection<Note> notes = midi.GetNotes();
+            TempoMap tempoMap = midi.GetTempoMap();
+
+            if (notes.Count > 0)
+            {
+                strs[2] = TimeConverter.ConvertTo<BarBeatFractionTimeSpan>(notes.First().Time, tempoMap).ConvertToTimecodeString(true);
+                strs[3] = TimeConverter.ConvertTo<BarBeatFractionTimeSpan>(notes.Last().Time + notes.Last().Length, tempoMap).ConvertToTimecodeString(true);
+            }
+
+            return strs;
+        }
+
+        public static bool ImportMarkersFrom(this Vegas myVegas, FileImportArgs args)
         {
             List<Marker> markerList = new List<Marker>();
-            switch (type)
+            Timecode markerPosition = new Timecode(0);
+            try
             {
-                case FileType.Midi:
-                    MidiFile midi = MidiFile.Read(filePath);
-                    TempoMap tempoMap = midi.GetTempoMap();
+                switch (args.FileType)
+                {
+                    case FileType.Midi:
+                        TempoMap tempoMap = args.Midi.GetTempoMap();
+                        long start = TimeConverter.ConvertFrom(args.MidiImportStart, tempoMap);
+                        long end = TimeConverter.ConvertFrom(args.MidiImportEnd, tempoMap);
+                        double startMilliseconds = TimeConverter.ConvertTo<MetricTimeSpan>(start, tempoMap).TotalMilliseconds;
 
-                    Timecode offset = new Timecode(0);
-                    foreach (ValueChange<Tempo> change in tempoMap.GetTempoChanges())
-                    {
-                        markerList.Add(new Marker(new Timecode(TimeConverter.ConvertTo<MetricTimeSpan>(change.Time, tempoMap).TotalMilliseconds) + offset,
-                                                  string.Format("BPM = {0}", change.Value.BeatsPerMinute)));
-                    }
-                    break;
+                        markerList.Add(new Marker(args.ToProjectPosition, string.Format("BPM = {0}", tempoMap.GetTempoAtTime(args.MidiImportStart).BeatsPerMinute)));
 
-                case FileType.MarkerInfoList:
-                    using (StreamReader reader = new StreamReader(filePath))
-                    {
-                        List<MarkerInfo> infos = JsonConvert.DeserializeObject<List<MarkerInfo>>(reader.ReadToEnd());
-                        if (infos != null)
+                        foreach (ValueChange<Tempo> change in tempoMap.GetTempoChanges())
                         {
-                            foreach (MarkerInfo info in infos)
+                            if (change.Time <= start)
                             {
-                                markerList.Add(new Marker(Timecode.FromSeconds(info?.Seconds ?? 0), info?.Label));
+                                continue;
+                            }
+                            if (change.Time > end)
+                            {
+                                break;
+                            }
+                            markerPosition = new Timecode(TimeConverter.ConvertTo<MetricTimeSpan>(change.Time, tempoMap).TotalMilliseconds - startMilliseconds) + args.ToProjectPosition;
+                            markerList.Add(new Marker(markerPosition, string.Format("BPM = {0}", change.Value.BeatsPerMinute)));
+                        }
+                        break;
+
+                    case FileType.MarkerInfoList:
+                        using (StreamReader reader = new StreamReader(args.FilePath))
+                        {
+                            List<MarkerInfo> infos = JsonConvert.DeserializeObject<List<MarkerInfo>>(reader.ReadToEnd());
+                            if (infos != null && infos.Count > 0)
+                            {
+                                foreach (MarkerInfo info in infos)
+                                {
+                                    markerPosition = Timecode.FromSeconds(info?.Seconds ?? 0) + args.ToProjectPosition;
+                                    markerList.Add(new Marker(markerPosition, info?.Label));
+                                }
+                            }
+                        }
+                        break;
+
+                    default: return false;
+                }
+
+
+                if (markerList.Count == 0)
+                {
+                    return false;
+                }
+
+                using (UndoBlock undo = new UndoBlock(string.Format(L.InsertFromFile, Path.GetFileName(args.FilePath))))
+                {
+                    foreach (BpmPoint p in myVegas.Project.Markers.GetBpmPointList())
+                    {
+                        if (p.Marker != null)
+                        {
+                            if (args.ClearRangeChoice == 0 || (args.ClearRangeChoice == 1 && p.Marker.Position >= args.ToProjectPosition && p.Marker.Position <= markerPosition))
+                            {
+                                myVegas.Project.Markers.Remove(p.Marker);
                             }
                         }
                     }
-                    break;
 
-                default: return;
-
-            }
-
-
-            if (markerList.Count == 0)
-            {
-                return;
-            }
-
-            using (UndoBlock undo = new UndoBlock(string.Format(L.InsertFromFile, Path.GetFileName(filePath))))
-            {
-                foreach (BpmPoint p in GetBpmPointList(myVegas.Project.Markers))
-                {
-                    if (p.Marker != null && p.Marker.IsValid())
+                    foreach (Marker m in markerList)
                     {
-                        myVegas.Project.Markers.Remove(p.Marker);
+                        myVegas.Project.Markers.Add(m);
                     }
-                }
 
-                foreach (Marker m in markerList)
-                {
-                    myVegas.Project.Markers.Add(m);
+                    myVegas.RefreshBpmList(true);
                 }
-
-                myVegas.RefreshBpmList(true);
             }
+
+            catch (Exception ex)
+            {
+                myVegas.ShowError(ex);
+                return false;
+            }
+
+            return true;
         }
 
 
-        public static void ExportMarkersTo(string filePath, FileType type)
+        public static bool ExportMarkersTo(this Vegas myVegas, string filePath, FileType type)
         {
-            if (CurrentBpmPointList.Count == 0)
+            BpmPointList pointList = myVegas.Project.Markers.GetBpmPointList();
+
+            if (pointList.Count == 0)
             {
-                return;
+                return false;
             }
 
-            string dirPath = Path.GetDirectoryName(filePath);
-            if (!Directory.Exists(dirPath))
+            try
             {
-                Directory.CreateDirectory(dirPath);
-            }
+                string dirPath = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(dirPath))
+                {
+                    Directory.CreateDirectory(dirPath);
+                }
 
-            switch (type)
-            {
-                case FileType.Midi:
-                    MidiFile midi = new MidiFile(new TrackChunk());
 
-                    using (TempoMapManager tempoMapManager = new TempoMapManager(midi.TimeDivision, midi.GetTrackChunks().Select(c => c.Events)))
-                    {
-                        TempoMap tempoMap = tempoMapManager.TempoMap;
-                        foreach (BpmPoint p in CurrentBpmPointList)
+                switch (type)
+                {
+                    case FileType.Midi:
+                        MidiFile midi = new MidiFile(new TrackChunk());
+                        using (TempoMapManager tempoMapManager = new TempoMapManager(midi.TimeDivision, midi.GetTrackChunks().Select(c => c.Events)))
                         {
-                            tempoMapManager.SetTempo(new MetricTimeSpan((p.Position - CurrentBpmPointList[0].Position).Nanos / 10), Tempo.FromBeatsPerMinute(p.Bpm));
+                            TempoMap tempoMap = tempoMapManager.TempoMap;
+                            
+                            foreach (BpmPoint p in pointList)
+                            {
+                                tempoMapManager.SetTempo(new MetricTimeSpan((p.Position - pointList[0].Position).Nanos / 10), Tempo.FromBeatsPerMinute(p.Bpm));
+                            }
                         }
-                    }
-                    midi.Write(filePath, true);
+                        midi.Write(filePath, true);
 
-                    break;
+                        break;
 
-                case FileType.MarkerInfoList:
-                    using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-                    {
-                        byte[] buffer = System.Text.Encoding.Default.GetBytes(JsonConvert.SerializeObject(CurrentBpmPointList.MarkerInfos, Formatting.Indented));
-                        fileStream.Write(buffer, 0, buffer.Length);
-                    }
-                    break;
+                    case FileType.MarkerInfoList:
+                        using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                        {
+                            byte[] buffer = System.Text.Encoding.Default.GetBytes(JsonConvert.SerializeObject(pointList.MarkerInfos, Formatting.Indented));
+                            fileStream.Write(buffer, 0, buffer.Length);
+                        }
+                        break;
 
-                default: return;
+                    default: return false;
+                }
+            }
+            
+            catch (Exception ex)
+            {
+                myVegas.ShowError(ex);
+                return false;
             }
 
-
+            return true;
         }
 
         public static BpmPoint GetCursorBpmPoint(this Vegas myVegas)

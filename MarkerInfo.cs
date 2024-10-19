@@ -4,9 +4,9 @@ using ScriptPortal.Vegas;
 using Sony.Vegas;
 #endif
 
+using VariableBpm;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using VariableBpm;
 
 // a simple class for serialization and deserialization
 [JsonObject(MemberSerialization.OptOut)]

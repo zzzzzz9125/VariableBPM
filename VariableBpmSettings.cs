@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System.IO;
+﻿using System.IO;
+using Newtonsoft.Json;
 
 namespace VariableBpm
 {
@@ -8,8 +8,10 @@ namespace VariableBpm
         public string CurrentLanguage = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         public int Interval = 1;
         public bool AutoStart = false, RippleForMarkers = false;
+        public int[] ImportMidiRangeChoices = new int[] { 0, 0 };
+        public int ToProjectChoice = 0, ClearRangeChoice = 0;
 
-        public VariableBpmSettings LoadFromFile(string filePath = null)
+        public static VariableBpmSettings LoadFromFile(string filePath = null)
         {
             filePath = filePath ?? Path.Combine(Common.SettingsFolder, "VariableBpmSettings.json");
             if (File.Exists(filePath))

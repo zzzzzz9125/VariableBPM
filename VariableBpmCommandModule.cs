@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace VariableBpm
 {
-	public class LayerRepeaterCommandModule : ICustomCommandModule
+	public class VariableBpmCommandModule : ICustomCommandModule
 	{
 		private Vegas myVegas;
 

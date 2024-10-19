@@ -7,8 +7,8 @@
     <ProjectGuid>{135EC03A-CE86-4A5C-A305-85E76BAB0E3C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>VariableBPM</RootNamespace>
-    <AssemblyName>VariableBPM</AssemblyName>
+    <RootNamespace>VariableBpm</RootNamespace>
+    <AssemblyName>VariableBpm</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="BpmPoint.cs" />
     <Compile Include="Common.cs" />
+    <Compile Include="FileImportArgs.cs" />
     <Compile Include="L.cs" />
     <Compile Include="MarkerInfo.cs" />
     <Compile Include="VariableBpm.cs">
@@ -78,8 +79,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>xcopy /R /Y "$(TargetDir)VariableBPM.dll" "C:\ProgramData\VEGAS Pro\Application Extensions\"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="packages\Melanchall.DryWetMidi.7.2.0\build\Melanchall.DryWetMidi.targets" Condition="Exists('packages\Melanchall.DryWetMidi.7.2.0\build\Melanchall.DryWetMidi.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

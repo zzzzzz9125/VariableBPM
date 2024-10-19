@@ -1,7 +1,11 @@
+#if !Sony
+using ScriptPortal.Vegas;
+#else
+using Sony.Vegas;
+#endif
+
 using System;
 using System.Drawing;
-using System.Windows.Forms;
-using ScriptPortal.Vegas;
 
 namespace VariableBpm
 {
@@ -23,7 +27,7 @@ namespace VariableBpm
 
         public override Size DefaultFloatingSize
         {
-            get { return new Size(500, 300); }
+            get { return new Size(500, 450); }
         }
 
         protected override void OnLoaded(EventArgs args)
