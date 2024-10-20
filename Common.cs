@@ -4,6 +4,13 @@ using ScriptPortal.Vegas;
 using Sony.Vegas;
 #endif
 
+using System;
+using System.IO;
+using System.Drawing;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.Runtime.InteropServices;
+
 #if TEST
 public static class S
 {
@@ -13,13 +20,6 @@ public static class S
     }
 }
 #endif
-
-using System;
-using System.IO;
-using System.Drawing;
-using System.Diagnostics;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
 
 namespace VariableBpm
 {

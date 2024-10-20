@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace VariableBpm
 {
@@ -41,29 +42,19 @@ namespace VariableBpm
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                ColumnCount = 2,
+                ColumnCount = 4,
                 Dock = DockStyle.Fill
             };
-            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
-            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39));
+            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16));
+            l.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
             this.Controls.Add(l);
-
-            Button manualButton = new Button
-            {
-                Text = L.VariableBpmManual,
-                Margin = new Padding(3, 5, 0, 3),
-                TextAlign = ContentAlignment.MiddleCenter,
-                AutoSize = true,
-                FlatStyle = FlatStyle.Flat
-            };
-            manualButton.FlatAppearance.BorderSize = 1;
-            manualButton.FlatAppearance.BorderColor = Color.FromArgb(127, 127, 127);
-            l.Controls.Add(manualButton);
 
             CheckBox autoBox = new CheckBox
             {
                 Text = L.VariableBpmAuto,
-                Margin = new Padding(6, 9, 6, 3),
+                Margin = new Padding(6, 13, 6, 3),
                 AutoSize = true,
                 Checked = VariableBpmCommon.Settings.AutoStart
             };
@@ -77,10 +68,85 @@ namespace VariableBpm
                 SetFocusToMainTrackView();
             };
 
+            Button manualButton = new Button
+            {
+                Text = L.VariableBpmManual,
+                Margin = new Padding(3, 8, 0, 3),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = true,
+                FlatStyle = FlatStyle.Flat,
+                Anchor = AnchorStyles.None
+            };
+            manualButton.FlatAppearance.BorderSize = 1;
+            manualButton.FlatAppearance.BorderColor = Color.FromArgb(127, 127, 127);
+            l.Controls.Add(manualButton);
+
             manualButton.Click += delegate (object o, EventArgs e)
             {
                 myVegas.RefreshBpmList(true);
                 SetFocusToMainTrackView();
+            };
+
+            TextBox metronomeBox = new TextBox
+            {
+                AutoSize = true,
+                Margin = new Padding(9, 12, 6, 6),
+                Text = ""
+            };
+            l.Controls.Add(metronomeBox);
+
+            metronomeBox.MouseWheel += delegate (object o, MouseEventArgs e)
+            {
+                if (double.TryParse(metronomeBox.Text, out double tmp))
+                {
+                    metronomeBox.Text = (Math.Round(tmp * (e.Delta > 0 ? 2 : 0.5), 2)).ToString();
+                }
+            };
+
+            Button metronomeButton = new Button
+            {
+                Text = L.Metronome,
+                Margin = new Padding(3, 8, 0, 3),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = true,
+                FlatStyle = FlatStyle.Flat,
+                Anchor = AnchorStyles.None
+            };
+            metronomeButton.FlatAppearance.BorderSize = 1;
+            metronomeButton.FlatAppearance.BorderColor = Color.FromArgb(127, 127, 127);
+            l.Controls.Add(metronomeButton);
+
+            List<double> metronomeTicks = new List<double>();
+
+            metronomeButton.Click += delegate (object o, EventArgs e)
+            {
+                double time = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalMilliseconds;
+
+                if (metronomeTicks.Count > 0 && time - metronomeTicks[metronomeTicks.Count - 1] > 2000)
+                {
+                    metronomeTicks.Clear();
+                    metronomeBox.Text = "";
+                }
+
+                metronomeTicks.Add(time);
+
+                if (metronomeTicks.Count < 2)
+                {
+                    return;
+                }
+
+                double sum = 0;
+                int size = Math.Max(2, metronomeTicks.Count - 2), count = 0;
+
+                for (int i = 0; i <= metronomeTicks.Count - size; i++)
+                {
+                    sum += (metronomeTicks[i + size - 1] - metronomeTicks[i]);
+                    count++;
+                }
+
+                double bpm = 60000 * count * (size - 1) / sum;
+
+                metronomeBox.Text = Math.Round(bpm, 2).ToString();
             };
 
             GroupBox fileGroup = new GroupBox
@@ -93,7 +159,7 @@ namespace VariableBpm
             };
 
             l.Controls.Add(fileGroup);
-            l.SetColumnSpan(fileGroup, 2);
+            l.SetColumnSpan(fileGroup, 4);
 
             TableLayoutPanel filePanel = new TableLayoutPanel
             {
@@ -101,11 +167,12 @@ namespace VariableBpm
                 AutoSize = true,
                 Anchor = (AnchorStyles.Top | AnchorStyles.Left),
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                ColumnCount = 3
+                ColumnCount = 4
             };
             filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
-            filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+            filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 39));
+            filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
+            filePanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 18));
             fileGroup.Controls.Add(filePanel);
 
             Label label = new Label
@@ -124,6 +191,19 @@ namespace VariableBpm
                 Dock = DockStyle.Fill
             };
             filePanel.Controls.Add(importPathBox);
+
+            Button importSelectButton = new Button
+            {
+                Text = L.SelectFile,
+                Margin = new Padding(0, 3, 0, 3),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = true,
+                FlatStyle = FlatStyle.Flat,
+                Anchor = AnchorStyles.None
+            };
+            importSelectButton.FlatAppearance.BorderSize = 0;
+            importSelectButton.FlatAppearance.BorderColor = Color.FromArgb(127, 127, 127);
+            filePanel.Controls.Add(importSelectButton);
 
             Button importButton = new Button
             {
@@ -167,6 +247,7 @@ namespace VariableBpm
                 Dock = DockStyle.Fill
             };
             filePanel.Controls.Add(startBox);
+            filePanel.SetColumnSpan(startBox, 2);
 
             label = new Label
             {
@@ -194,8 +275,9 @@ namespace VariableBpm
                 Dock = DockStyle.Fill
             };
             filePanel.Controls.Add(endBox);
+            filePanel.SetColumnSpan(endBox, 2);
 
-            importPathBox.Click += delegate (object o, EventArgs e)
+            importSelectButton.Click += delegate (object o, EventArgs e)
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog
                 {
@@ -203,21 +285,25 @@ namespace VariableBpm
                     InitialDirectory = string.IsNullOrEmpty(importPathBox.Text) ? "" : Path.GetDirectoryName(importPathBox.Text),
                     FileName = Path.GetFileName(importPathBox.Text) ?? ""
                 };
-                if (openFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    importPathBox.Text = openFileDialog.FileName;
 
-                    importArgs.FilePath = importPathBox.Text;
-                    midiStartEnd = importArgs.Midi.GetMidiStartEnd();
-                    if (importRangeMidiStartBox.SelectedIndex < 2)
-                    {
-                        startBox.Text = midiStartEnd[importRangeMidiStartBox.SelectedIndex * 2];
-                    }
-                    if (importRangeMidiEndBox.SelectedIndex < 2)
-                    {
-                        endBox.Text = midiStartEnd[importRangeMidiEndBox.SelectedIndex * 2 + 1];
-                    }
+                if (openFileDialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
                 }
+
+                importPathBox.Text = openFileDialog.FileName;
+
+                importArgs.FilePath = importPathBox.Text;
+                midiStartEnd = importArgs.Midi.GetMidiStartEnd();
+                if (importRangeMidiStartBox.SelectedIndex < 2)
+                {
+                    startBox.Text = midiStartEnd[importRangeMidiStartBox.SelectedIndex * 2];
+                }
+                if (importRangeMidiEndBox.SelectedIndex < 2)
+                {
+                    endBox.Text = midiStartEnd[importRangeMidiEndBox.SelectedIndex * 2 + 1];
+                }
+
             };
 
             int[] importMidiRangeChoices = VariableBpmCommon.Settings.ImportMidiRangeChoices;
@@ -282,6 +368,7 @@ namespace VariableBpm
                 Dock = DockStyle.Fill
             };
             filePanel.Controls.Add(clearRangeBox);
+            filePanel.SetColumnSpan(clearRangeBox, 2);
 
             clearRangeBox.SelectedIndexChanged += delegate (object o, EventArgs e)
             {
@@ -296,6 +383,34 @@ namespace VariableBpm
 
             importButton.Click += delegate (object o, EventArgs e)
             {
+                if (string.IsNullOrEmpty(importPathBox.Text))
+                {
+                    OpenFileDialog openFileDialog = new OpenFileDialog
+                    {
+                        Filter = L.FileDialogFilters[0],
+                        InitialDirectory = string.IsNullOrEmpty(importPathBox.Text) ? "" : Path.GetDirectoryName(importPathBox.Text),
+                        FileName = Path.GetFileName(importPathBox.Text) ?? ""
+                    };
+
+                    if (openFileDialog.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    importPathBox.Text = openFileDialog.FileName;
+
+                    importArgs.FilePath = importPathBox.Text;
+                    midiStartEnd = importArgs.Midi.GetMidiStartEnd();
+                    if (importRangeMidiStartBox.SelectedIndex < 2)
+                    {
+                        startBox.Text = midiStartEnd[importRangeMidiStartBox.SelectedIndex * 2];
+                    }
+                    if (importRangeMidiEndBox.SelectedIndex < 2)
+                    {
+                        endBox.Text = midiStartEnd[importRangeMidiEndBox.SelectedIndex * 2 + 1];
+                    }
+                }
+
                 importArgs.FilePath = importPathBox.Text;
                 importArgs.GetParameters(toProjectBox.SelectedIndex == 1 ? myVegas.Transport.PlayCursorPosition : new Timecode(0), clearRangeBox.SelectedIndex, startBox.Text, endBox.Text);
 
@@ -324,7 +439,20 @@ namespace VariableBpm
             };
             filePanel.Controls.Add(exportPathBox);
 
-            exportPathBox.Click += delegate (object o, EventArgs e)
+            Button exportSelectButton = new Button
+            {
+                Text = L.SelectFile,
+                Margin = new Padding(0, 3, 0, 3),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = true,
+                FlatStyle = FlatStyle.Flat,
+                Anchor = AnchorStyles.None
+            };
+            exportSelectButton.FlatAppearance.BorderSize = 0;
+            exportSelectButton.FlatAppearance.BorderColor = Color.FromArgb(127, 127, 127);
+            filePanel.Controls.Add(exportSelectButton);
+
+            exportSelectButton.Click += delegate (object o, EventArgs e)
             {
                 SaveFileDialog saveFileDialog = new SaveFileDialog
                 {
@@ -332,10 +460,13 @@ namespace VariableBpm
                     InitialDirectory = string.IsNullOrEmpty(exportPathBox.Text) ? "" : Path.GetDirectoryName(exportPathBox.Text),
                     FileName = string.IsNullOrEmpty(exportPathBox.Text) ? Path.GetFileNameWithoutExtension(myVegas.Project.FilePath) ?? "Untitled" : Path.GetFileName(exportPathBox.Text) ?? ""
                 };
-                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+
+                if (saveFileDialog.ShowDialog() != DialogResult.OK)
                 {
-                    exportPathBox.Text = saveFileDialog.FileName;
+                    return;
                 }
+
+                exportPathBox.Text = saveFileDialog.FileName;
             };
 
             Button exportButton = new Button
@@ -353,6 +484,23 @@ namespace VariableBpm
 
             exportButton.Click += delegate (object o, EventArgs e)
             {
+                if (string.IsNullOrEmpty(exportPathBox.Text))
+                {
+                    SaveFileDialog saveFileDialog = new SaveFileDialog
+                    {
+                        Filter = L.FileDialogFilters[1],
+                        InitialDirectory = string.IsNullOrEmpty(exportPathBox.Text) ? "" : Path.GetDirectoryName(exportPathBox.Text),
+                        FileName = string.IsNullOrEmpty(exportPathBox.Text) ? Path.GetFileNameWithoutExtension(myVegas.Project.FilePath) ?? "Untitled" : Path.GetFileName(exportPathBox.Text) ?? ""
+                    };
+
+                    if (saveFileDialog.ShowDialog() != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    exportPathBox.Text = saveFileDialog.FileName;
+                }
+
                 string path = exportPathBox.Text;
                 FileType type = FileType.NotSupported;
 
@@ -397,7 +545,7 @@ namespace VariableBpm
                 ForeColor = colors[1]
             };
             l.Controls.Add(settingsGroup);
-            l.SetColumnSpan(settingsGroup, 2);
+            l.SetColumnSpan(settingsGroup, 4);
 
             TableLayoutPanel settingsPanel = new TableLayoutPanel
             {

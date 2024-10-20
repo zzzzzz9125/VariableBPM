@@ -211,19 +211,26 @@ namespace VariableBpm
 
         public static bool ImportMarkersFrom(this Vegas myVegas, FileImportArgs args)
         {
-            List<Marker> markerList = new List<Marker>();
-            Timecode markerPosition = new Timecode(0);
             try
             {
+                MarkerInfoList markerInfos = new MarkerInfoList();
+
                 switch (args.FileType)
                 {
                     case FileType.Midi:
                         TempoMap tempoMap = args.Midi.GetTempoMap();
                         long start = TimeConverter.ConvertFrom(args.MidiImportStart, tempoMap);
                         long end = TimeConverter.ConvertFrom(args.MidiImportEnd, tempoMap);
-                        double startMilliseconds = TimeConverter.ConvertTo<MetricTimeSpan>(start, tempoMap).TotalMilliseconds;
 
-                        markerList.Add(new Marker(args.ToProjectPosition, string.Format("BPM = {0}", tempoMap.GetTempoAtTime(args.MidiImportStart).BeatsPerMinute)));
+                        List<MidiBpmPoint> midiBpmPoints = new List<MidiBpmPoint>
+                        {
+                            new MidiBpmPoint(start, tempoMap.GetTempoAtTime(args.MidiImportStart).BeatsPerMinute, tempoMap.GetTimeSignatureAtTime(args.MidiImportStart).Numerator)
+                        };
+
+                        if (midiBpmPoints[0].Beats == 4)
+                        {
+                            midiBpmPoints[0].Beats = 0;
+                        }
 
                         foreach (ValueChange<Tempo> change in tempoMap.GetTempoChanges())
                         {
@@ -235,31 +242,52 @@ namespace VariableBpm
                             {
                                 break;
                             }
-                            markerPosition = new Timecode(TimeConverter.ConvertTo<MetricTimeSpan>(change.Time, tempoMap).TotalMilliseconds - startMilliseconds) + args.ToProjectPosition;
-                            markerList.Add(new Marker(markerPosition, string.Format("BPM = {0}", change.Value.BeatsPerMinute)));
+
+                            midiBpmPoints.Add(new MidiBpmPoint(change.Time, change.Value.BeatsPerMinute));
                         }
+
+                        foreach (ValueChange<TimeSignature> change in tempoMap.GetTimeSignatureChanges())
+                        {
+                            if (change.Time < start)
+                            {
+                                continue;
+                            }
+                            if (change.Time > end)
+                            {
+                                break;
+                            }
+                            
+                            MidiBpmPoint p = new MidiBpmPoint(change.Time, tempoMap.GetTempoAtTime(TimeConverter.ConvertTo<MetricTimeSpan>(change.Time, tempoMap)).BeatsPerMinute, change.Value.Numerator);
+
+                            int index = 0;
+                            while (index < midiBpmPoints.Count && midiBpmPoints[index].Time < p.Time) { index++; }
+
+                            midiBpmPoints.Insert(index, p);
+                            if (midiBpmPoints[index+1].Time == p.Time)
+                            {
+                                midiBpmPoints.RemoveAt(index + 1);
+                            }
+                        }
+
+                        foreach (MidiBpmPoint p in midiBpmPoints)
+                        {
+                            markerInfos.Add(new MarkerInfo(new Timecode(TimeConverter.ConvertTo<MetricTimeSpan>(p.Time, tempoMap).TotalMilliseconds),
+                                                           string.Format("BPM = {0}{1}", p.Bpm, p.Beats > 0 ? string.Format(", BEATS = {0}", p.Beats) : "")));
+                        }
+
                         break;
 
                     case FileType.MarkerInfoList:
                         using (StreamReader reader = new StreamReader(args.FilePath))
                         {
-                            List<MarkerInfo> infos = JsonConvert.DeserializeObject<List<MarkerInfo>>(reader.ReadToEnd());
-                            if (infos != null && infos.Count > 0)
-                            {
-                                foreach (MarkerInfo info in infos)
-                                {
-                                    markerPosition = Timecode.FromSeconds(info?.Seconds ?? 0) + args.ToProjectPosition;
-                                    markerList.Add(new Marker(markerPosition, info?.Label));
-                                }
-                            }
+                            markerInfos = (MarkerInfoList)JsonConvert.DeserializeObject<List<MarkerInfo>>(reader.ReadToEnd());
                         }
                         break;
 
                     default: return false;
                 }
 
-
-                if (markerList.Count == 0)
+                if (markerInfos.Count == 0)
                 {
                     return false;
                 }
@@ -270,16 +298,16 @@ namespace VariableBpm
                     {
                         if (p.Marker != null)
                         {
-                            if (args.ClearRangeChoice == 0 || (args.ClearRangeChoice == 1 && p.Marker.Position >= args.ToProjectPosition && p.Marker.Position <= markerPosition))
+                            if (args.ClearRangeChoice == 0 || (args.ClearRangeChoice == 1 && p.Marker.Position >= args.ToProjectPosition && p.Marker.Position <= markerInfos.Last().Position))
                             {
                                 myVegas.Project.Markers.Remove(p.Marker);
                             }
                         }
                     }
 
-                    foreach (Marker m in markerList)
+                    foreach (MarkerInfo info in markerInfos)
                     {
-                        myVegas.Project.Markers.Add(m);
+                        myVegas.Project.Markers.Add(new Marker(info.Position - markerInfos[0].Position + args.ToProjectPosition, info?.Label));
                     }
 
                     myVegas.RefreshBpmList(true);
@@ -321,10 +349,17 @@ namespace VariableBpm
                         using (TempoMapManager tempoMapManager = new TempoMapManager(midi.TimeDivision, midi.GetTrackChunks().Select(c => c.Events)))
                         {
                             TempoMap tempoMap = tempoMapManager.TempoMap;
-                            
+                            uint beats = 0;
+
                             foreach (BpmPoint p in pointList)
                             {
-                                tempoMapManager.SetTempo(new MetricTimeSpan((p.Position - pointList[0].Position).Nanos / 10), Tempo.FromBeatsPerMinute(p.Bpm));
+                                MetricTimeSpan span = new MetricTimeSpan((p.Position - pointList[0].Position).Nanos / 10);
+                                tempoMapManager.SetTempo(span, Tempo.FromBeatsPerMinute(p.Bpm));
+                                if (p.Beats != beats)
+                                {
+                                    tempoMapManager.SetTimeSignature(span, new TimeSignature((int)p.Beats, 4));
+                                    beats = p.Beats;
+                                }
                             }
                         }
                         midi.Write(filePath, true);

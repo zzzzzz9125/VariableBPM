@@ -28,6 +28,8 @@ namespace VariableBpm
             Marker = marker;
         }
 
+        public BpmPoint() { }
+
         public static BpmPoint CopyFrom(BpmPoint p)
         {
             return new BpmPoint(p.Position, p.Bpm, p.Offset, p.IsZeroPoint, p.Beats, p.Marker);

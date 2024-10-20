@@ -62,6 +62,7 @@
     <Compile Include="FileImportArgs.cs" />
     <Compile Include="L.cs" />
     <Compile Include="MarkerInfo.cs" />
+    <Compile Include="MidiBpmPoint.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
