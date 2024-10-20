@@ -597,12 +597,31 @@ namespace VariableBpm
             };
 
             settingsPanel.Controls.Add(autoStartBox);
-            settingsPanel.SetColumnSpan(autoStartBox, 2);
 
             autoStartBox.CheckedChanged += delegate (object o, EventArgs e)
             {
                 VariableBpmCommon.Settings.AutoStart = autoStartBox.Checked;
                 SetFocusToMainTrackView();
+            };
+
+            CheckBox midiCompatibilityModeBox = new CheckBox
+            {
+                Text = L.MidiCompatibilityMode,
+                Margin = new Padding(6, 3, 0, 3),
+                AutoSize = true,
+                Checked = VariableBpmCommon.Settings.MidiCompatibilityMode
+            };
+
+            settingsPanel.Controls.Add(midiCompatibilityModeBox);
+
+            midiCompatibilityModeBox.CheckedChanged += delegate (object o, EventArgs e)
+            {
+                VariableBpmCommon.Settings.MidiCompatibilityMode = midiCompatibilityModeBox.Checked;
+            };
+
+            this.Closed += delegate (object o, EventArgs e)
+            {
+                VariableBpmCommon.Settings.SaveToFile();
             };
 
             CheckBox autoRippleBox = new CheckBox
@@ -614,17 +633,11 @@ namespace VariableBpm
             };
             
             settingsPanel.Controls.Add(autoRippleBox);
-            settingsPanel.SetColumnSpan(autoRippleBox, 2);
 
             autoRippleBox.CheckedChanged += delegate (object o, EventArgs e)
             {
                 VariableBpmCommon.Settings.RippleForMarkers = autoRippleBox.Checked;
                 SetFocusToMainTrackView();
-            };
-
-            this.Closed += delegate (object o, EventArgs e)
-            {
-                VariableBpmCommon.Settings.SaveToFile();
             };
 
             this.ResumeLayout(false);

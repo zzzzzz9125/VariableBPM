@@ -260,12 +260,12 @@ namespace VariableBpm
                             MidiBpmPoint p = new MidiBpmPoint(change.Time, tempoMap.GetTempoAtTime(TimeConverter.ConvertTo<MetricTimeSpan>(change.Time, tempoMap)).BeatsPerMinute, change.Value.Numerator);
 
                             int index = 0;
-                            while (index < midiBpmPoints.Count && midiBpmPoints[index].Time < p.Time) { index++; }
+                            while (index < midiBpmPoints.Count && midiBpmPoints[index].Time <= p.Time) { index++; }
 
                             midiBpmPoints.Insert(index, p);
-                            if (midiBpmPoints[index+1].Time == p.Time)
+                            if (midiBpmPoints[index-1].Time == p.Time)
                             {
-                                midiBpmPoints.RemoveAt(index + 1);
+                                midiBpmPoints.RemoveAt(index-1);
                             }
                         }
 

@@ -30,9 +30,21 @@ namespace VariableBpm
                 {
                     case ".mid":
                     case ".midi":
+                        ReadingSettings readingSettings = VariableBpmCommon.Settings.MidiCompatibilityMode ? new ReadingSettings
+                        {
+                            InvalidChannelEventParameterValuePolicy = InvalidChannelEventParameterValuePolicy.ReadValid,
+                            InvalidChunkSizePolicy = InvalidChunkSizePolicy.Ignore,
+                            InvalidMetaEventParameterValuePolicy = InvalidMetaEventParameterValuePolicy.SnapToLimits,
+                            MissedEndOfTrackPolicy = MissedEndOfTrackPolicy.Ignore,
+                            NoHeaderChunkPolicy = NoHeaderChunkPolicy.Ignore,
+                            NotEnoughBytesPolicy = NotEnoughBytesPolicy.Ignore,
+                            UnexpectedTrackChunksCountPolicy = UnexpectedTrackChunksCountPolicy.Ignore,
+                            UnknownChannelEventPolicy = UnknownChannelEventPolicy.SkipStatusByteAndOneDataByte,
+                            UnknownChunkIdPolicy = UnknownChunkIdPolicy.ReadAsUnknownChunk,
+                        } : new ReadingSettings();
                         try
                         {
-                            Midi = MidiFile.Read(value);
+                            Midi = MidiFile.Read(value, readingSettings);
                             FileType = FileType.Midi;
                         }
 

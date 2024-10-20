@@ -7,7 +7,7 @@ namespace VariableBpm
     {
         public string CurrentLanguage = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         public int Interval = 1;
-        public bool AutoStart = false, RippleForMarkers = false;
+        public bool AutoStart = false, RippleForMarkers = false, MidiCompatibilityMode = false;
         public int[] ImportMidiRangeChoices = new int[] { 0, 0 };
         public int ToProjectChoice = 0, ClearRangeChoice = 0;
 
