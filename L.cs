@@ -2,8 +2,8 @@ namespace VariableBpm
 {
     public static class L
     {
-        public static string Font, VariableBpm, VariableBpmManualCmd, VariableBpmAuto, VariableBpmManual, Metronome, FileGroup, SelectFile, ImportFromFile, ImportStart, ImportEnd, ToProjectPosition, Import, ExportToFile, Export, Settings, Interval, AutoStart, MidiCompatibilityMode, ChangeBpmTo, InsertFromFile, RippleForMarkers;
-        public static string[] FileDialogFilters, FileImportMessages, FileExportMessages, ImportRangeMidiStartType, ImportRangeMidiEndType, ToProjectType, ClearRangeType;
+        public static string Font, VariableBpm, VariableBpmManualCmd, VariableBpmAuto, VariableBpmManual, Metronome, FileGroup, SelectFile, ImportFromFile, ImportStart, ImportEnd, ToProjectPosition, Import, ExportToFile, Export, Settings, AutoLogic, Interval, AutoStart, MidiCompatibilityMode, ChangeBpmTo, InsertFromFile, RippleForMarkers, VegasVersionTooLow;
+        public static string[] FileDialogFilters, FileImportMessages, FileExportMessages, AutoLogicType, RippleForMarkersType, ImportRangeMidiStartType, ImportRangeMidiEndType, ToProjectType, ClearRangeType;
 
         // Some text localization.
         public static void Localize()
@@ -13,8 +13,10 @@ namespace VariableBpm
                 case "zh":
                     Font = "Microsoft Yahei UI";
                     VariableBpm = "可变 BPM"; VariableBpmManualCmd = "可变 BPM - BPM 网格手动刷新"; VariableBpmAuto = "自动刷新"; VariableBpmManual = "BPM 网格手动刷新"; Metronome = "节拍器";
-                    FileGroup = "速度标记导入/导出"; SelectFile = "选择文件"; ImportFromFile = "从文件导入"; ImportStart = "导入起点"; ImportEnd = "导入终点"; ToProjectPosition = "到项目位置"; Import = "导入"; ExportToFile = "导出到文件"; Export = "导出"; Settings = "设置"; Interval = "自动刷新检测间隔 (ms)"; AutoStart = "启动时默认启用自动刷新"; MidiCompatibilityMode = "MIDI 最大兼容模式";
-                    ChangeBpmTo = "更改 BPM 至 {0}"; InsertFromFile = "从 {0} 插入 BPM"; RippleForMarkers = "标记自动跟进";
+                    FileGroup = "速度标记导入/导出"; SelectFile = "选择文件"; ImportFromFile = "从文件导入"; ImportStart = "导入起点"; ImportEnd = "导入终点"; ToProjectPosition = "到项目位置"; Import = "导入";
+                    ExportToFile = "导出到文件"; Export = "导出"; Settings = "设置"; AutoLogic = "检测逻辑"; Interval = "定时器间隔 (ms)"; AutoStart = "启动时默认启用自动刷新"; MidiCompatibilityMode = "MIDI 最大兼容模式";
+                    ChangeBpmTo = "更改 BPM 至 {0}"; InsertFromFile = "从 {0} 插入 BPM"; RippleForMarkers = "标记跟进";
+                    VegasVersionTooLow = "当前 VEGAS 版本过低，无法使用此功能！\n版本要求：VEGAS Pro {0} 及以上";
                     FileDialogFilters = new string[]
                     {
                         "MIDI 文件|*.mid;*.midi|标记列表文件|*.json|所有文件|*.*",
@@ -31,6 +33,8 @@ namespace VariableBpm
                         "文件导出成功！是否打开所在文件夹？",
                         "文件导出失败！请确认路径合法，且项目中存在 BPM 标记！"
                     };
+                    AutoLogicType = new string[] { "定时器", "光标改变委托" };
+                    RippleForMarkersType = new string[] { "仅 BPM 标记", "所有类型的标记", "禁用" };
                     ImportRangeMidiStartType = new string[] { "MIDI 起始位置", "第一个音符", "自定义" };
                     ImportRangeMidiEndType = new string[] { "MIDI 终止位置", "最后一个音符", "自定义" };
                     ToProjectType = new string[] { "起始位置", "光标位置" };
@@ -40,8 +44,10 @@ namespace VariableBpm
                 default:
                     Font = "Arial";
                     VariableBpm = "Variable BPM"; VariableBpmManualCmd = "Variable BPM - BPM Grid Manual Refresh"; VariableBpmAuto = "Auto Refresh"; VariableBpmManual = "BPM Grid Manual Refresh"; Metronome = "Metronome";
-                    FileGroup = "Tempo Markers Import/Export"; SelectFile = "Select File"; ImportFromFile = "Import From"; ImportStart = "Start Point"; ImportEnd = "End Point"; ToProjectPosition = "To Project"; Import = "Import"; ExportToFile = "Export To"; Export = "Export"; Settings = "Settings"; Interval = "Auto Detection Interval (ms)"; AutoStart = "Enable Auto Refresh When Starting"; MidiCompatibilityMode = "MIDI Max Compatibility Mode";
-                    ChangeBpmTo = "Change BPM To {0}"; InsertFromFile = "Insert BPM From {0}"; RippleForMarkers = "Auto Ripple For Markers";
+                    FileGroup = "Tempo Markers Import/Export"; SelectFile = "Select File"; ImportFromFile = "Import From"; ImportStart = "Start Point"; ImportEnd = "End Point"; ToProjectPosition = "To Project"; Import = "Import";
+                    ExportToFile = "Export To"; Export = "Export"; Settings = "Settings"; AutoLogic = "Detect Logic"; Interval = "Timer Interval (ms)"; AutoStart = "Enable Auto Refresh When Starting"; MidiCompatibilityMode = "MIDI Max Compatibility Mode";
+                    ChangeBpmTo = "Change BPM To {0}"; InsertFromFile = "Insert BPM From {0}"; RippleForMarkers = "Markers Ripple";
+                    VegasVersionTooLow = "Current VEGAS version is too low to use this feature!\nRequired Version: VEGAS Pro {0}+";
                     FileDialogFilters = new string[]
                     {
                         "MIDI files|*.mid;*.midi|MarkerList files|*.json|All files|*.*",
@@ -58,6 +64,8 @@ namespace VariableBpm
                         "File Export Success! Do you want to open the folder?",
                         "File Export Failed! Please check that the file path is valid and that BPM Markers exist in this project!"
                     };
+                    AutoLogicType = new string[] { "Timer", "CursorChanged Delegate" };
+                    RippleForMarkersType = new string[] { "Only BPM Markers", "All Types of Markers", "Disabled" };
                     ImportRangeMidiStartType = new string[] { "MIDI Start", "First Note", "Custom" };
                     ImportRangeMidiEndType = new string[] { "MIDI End", "Last Note", "Custom" };
                     ToProjectType = new string[] { "Start Position", "Cursor Position" };

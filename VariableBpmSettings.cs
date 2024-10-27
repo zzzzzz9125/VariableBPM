@@ -3,13 +3,23 @@ using Newtonsoft.Json;
 
 namespace VariableBpm
 {
+    [JsonObject(MemberSerialization.OptOut)]
     public class VariableBpmSettings
     {
         public string CurrentLanguage = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
         public int Interval = 1;
-        public bool AutoStart = false, RippleForMarkers = false, MidiCompatibilityMode = false;
+        public bool AutoStart = false, MidiCompatibilityMode = false;
         public int[] ImportMidiRangeChoices = new int[] { 0, 0 };
-        public int ToProjectChoice = 0, ClearRangeChoice = 0;
+
+        public int AutoLogicChoice
+        {
+            get { return Common.VegasVersion < 19 ? 0 : autoLogicChoice; }
+            set { autoLogicChoice = Common.VegasVersion < 19 ? 0 : value; }
+        }
+
+        public int ToProjectChoice = 0, ClearRangeChoice = 0, RippleForMarkersChoice = 0;
+
+        private int autoLogicChoice = Common.VegasVersion < 19 ? 0 : 1;
 
         public static VariableBpmSettings LoadFromFile(string filePath = null)
         {

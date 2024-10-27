@@ -6,13 +6,14 @@ using Sony.Vegas;
 
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
 
 namespace VariableBpm
 {
 	internal class VariableBpmCommand
     {
-		private Vegas myVegas;
+
+        private Vegas myVegas;
 		private readonly CustomCommand VariableBpmCmd = new CustomCommand(CommandCategory.Tools, "VariableBpm");
 
 		internal void VariableBpmInit(Vegas Vegas, ref List<CustomCommand> CustomCommands)
@@ -25,10 +26,27 @@ namespace VariableBpm
             VariableBpmCmd.SetIconFile("VariableBpm.png");
             CustomCommands.Add(VariableBpmCmd);
 
-            CustomCommand cmdManual = new CustomCommand(CommandCategory.Tools, "VariableBpm_Manual") { DisplayName = L.VariableBpmManualCmd };
+            CustomCommand cmdManual = new CustomCommand(CommandCategory.Tools, "VariableBpm_Manual") { DisplayName = L.VariableBpmManualCmd, CanAddToMenu = false, CanAddToKeybindings = true };
             cmdManual.Invoked += delegate (object o, EventArgs e) { myVegas.RefreshBpmList(true); };
             cmdManual.SetIconFile("VariableBpm.png");
             CustomCommands.Add(cmdManual);
+
+#if TEST
+            CustomCommand cmdTest = new CustomCommand(CommandCategory.Tools, "VariableBpm_Test");
+            cmdTest.Invoked += delegate (object o, EventArgs e)
+            {
+                try
+                {
+
+                }
+                catch (Exception ex)
+                {
+                    myVegas.ShowError(ex);
+                }
+            };
+            cmdTest.SetIconFile("VariableBpm.png");
+            CustomCommands.Add(cmdTest);
+#endif
 
             if (VariableBpmCommon.Settings.AutoStart)
             {
@@ -60,10 +78,19 @@ namespace VariableBpm
 
             myVegas.MarkersChanged += delegate (object o, EventArgs e)
             {
-                if (VariableBpmCommon.Settings.RippleForMarkers)
+                if (VariableBpmCommon.Settings.RippleForMarkersChoice != 2)
                 {
-                    myVegas.RippleForMarkers();
-                    VariableBpmCommon.RippleMarkersSave = MarkerInfoList.GetFrom(myVegas.Project.Markers);
+                    List<Marker> list = new List<Marker>();
+                    if (VariableBpmCommon.Settings.RippleForMarkersChoice == 1)
+                    {
+                        list.AddRange(myVegas.Project.Markers);
+                    }
+                    else
+                    {
+                        list = VariableBpmCommon.CurrentBpmPointList.Markers;
+                    }
+                    VariableBpmCommon.RippleForMarkers(list);
+                    VariableBpmCommon.RippleMarkersSave = MarkerInfoList.GetFrom(list);
                 }
 
                 myVegas.RefreshBpmList();

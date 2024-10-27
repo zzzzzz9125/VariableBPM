@@ -25,16 +25,14 @@ namespace VariableBpm
         public static bool Enable = false, Rippling = false, Activated = true;
         public static MarkerInfoList RippleMarkersSave = null;
         public static VariableBpmSettings Settings = VariableBpmSettings.LoadFromFile();
-        public const string VERSION = "v1.00";
+        public const string VERSION = "v1.01";
 
-        public static void RippleForMarkers(this Vegas myVegas)
+        public static void RippleForMarkers(List<Marker> markers)
         {
             if (Rippling)
             {
                 return;
             }
-
-            BaseMarkerList<Marker> markers = myVegas.Project.Markers;
 
             if (RippleMarkersSave?.Count != markers.Count)
             {
@@ -78,12 +76,18 @@ namespace VariableBpm
 
         public static void RefreshBpmList(this Vegas myVegas, bool manual = false)
         {
-            if (BpmTimer != null && !(manual && Enable))
+            if (!manual || !Enable)
             {
-                BpmTimer.Stop();
-                BpmTimer.Dispose();
-                BpmTimer = null;
-                GC.Collect();
+                if (BpmTimer != null)
+                {
+                    BpmTimer.Stop();
+                    BpmTimer.Dispose();
+                    BpmTimer = null;
+                    GC.Collect();
+                }
+#if !Sony
+                if (!(Common.VegasVersion < 19)) { myVegas.VegasTimeCursorPositionChanged(new EventHandler(myVegas.RefreshBpmGrid), false); };
+#endif
             }
 
             if (!Enable && !manual)
@@ -102,9 +106,18 @@ namespace VariableBpm
 
             if (!manual)
             {
-                BpmTimer = new Timer() { Interval = Settings.Interval };
-                BpmTimer.Tick += delegate (object o, EventArgs e) { myVegas.RefreshBpmGrid(); };
-                BpmTimer.Start();
+                if (Settings.AutoLogicChoice == 1 && !(Common.VegasVersion < 19))
+                {
+#if !Sony
+                    myVegas.VegasTimeCursorPositionChanged(new EventHandler(myVegas.RefreshBpmGrid), true);
+#endif
+                }
+                else
+                {
+                    BpmTimer = new Timer() { Interval = Settings.Interval };
+                    BpmTimer.Tick += new EventHandler(myVegas.RefreshBpmGrid);
+                    BpmTimer.Start();
+                }
             }
         }
 
@@ -280,7 +293,7 @@ namespace VariableBpm
                     case FileType.MarkerInfoList:
                         using (StreamReader reader = new StreamReader(args.FilePath))
                         {
-                            markerInfos = (MarkerInfoList)JsonConvert.DeserializeObject<List<MarkerInfo>>(reader.ReadToEnd());
+                            markerInfos = JsonConvert.DeserializeObject<MarkerInfoList>(reader.ReadToEnd());
                         }
                         break;
 
@@ -421,6 +434,12 @@ namespace VariableBpm
 
             return CurrentBpmPointList[j];
         }
+
+        public static void RefreshBpmGrid(this Vegas myVegas, object o, EventArgs e)
+        {
+            myVegas.RefreshBpmGrid();
+        }
+
         public static void RefreshBpmGrid(this Vegas myVegas)
         {
             BpmPoint cursor = myVegas.GetCursorBpmPoint();

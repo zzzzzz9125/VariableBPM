@@ -27,9 +27,13 @@ namespace VariableBpm
 
         private void InitializeComponent()
 		{
-            Color[] colors = myVegas.GetColors();
-            this.SuspendLayout();
+#if !Sony
+            Color[] colors = new Color[] { ScriptPortal.MediaSoftware.Skins.Skins.Colors.ButtonFace, ScriptPortal.MediaSoftware.Skins.Skins.Colors.ButtonText };
+#else
+            Color[] colors = new Color[] { Sony.MediaSoftware.Skins.Skins.Colors.ButtonFace, Sony.MediaSoftware.Skins.Skins.Colors.ButtonText };
+#endif
 
+            this.SuspendLayout();
             this.AutoScaleMode = AutoScaleMode.Font;
             this.MinimumSize = new Size(433, 172);
             this.BackColor = colors[0];
@@ -177,7 +181,7 @@ namespace VariableBpm
 
             Label label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.ImportFromFile,
                 AutoSize = true
             };
@@ -223,7 +227,7 @@ namespace VariableBpm
 
             label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.ImportStart,
                 AutoSize = true
             };
@@ -251,7 +255,7 @@ namespace VariableBpm
 
             label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.ImportEnd,
                 AutoSize = true
             };
@@ -338,7 +342,7 @@ namespace VariableBpm
 
             label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.ToProjectPosition,
                 AutoSize = true
             };
@@ -424,7 +428,7 @@ namespace VariableBpm
 
             label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.ExportToFile,
                 AutoSize = true
             };
@@ -553,15 +557,58 @@ namespace VariableBpm
                 AutoSize = true,
                 Anchor = (AnchorStyles.Top | AnchorStyles.Left),
                 GrowStyle = TableLayoutPanelGrowStyle.AddRows,
-                ColumnCount = 2
+                ColumnCount = 4
             };
-            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+            settingsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
             settingsGroup.Controls.Add(settingsPanel);
 
             label = new Label
             {
-                Margin = new Padding(6, 9, 6, 6),
+                Margin = new Padding(6, 9, 0, 6),
+                Text = L.AutoLogic,
+                AutoSize = true
+            };
+            settingsPanel.Controls.Add(label);
+
+            ComboBox autoLogicBox = new ComboBox
+            {
+                AutoSize = true,
+                Margin = new Padding(9, 6, 11, 6),
+                DataSource = L.AutoLogicType,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill
+            };
+            settingsPanel.Controls.Add(autoLogicBox);
+
+            autoLogicBox.SelectedIndexChanged += delegate (object o, EventArgs e)
+            {
+                if (autoLogicBox.SelectedIndex == 1 && Common.VegasVersion < 19)
+                {
+                    MessageBox.Show(string.Format(L.VegasVersionTooLow, 19));
+                    autoLogicBox.SelectedIndex = 0;
+                    return;
+                }
+
+                if (VariableBpmCommon.Settings.AutoLogicChoice == autoLogicBox.SelectedIndex)
+                {
+                    return;
+                }
+
+                VariableBpmCommon.Settings.AutoLogicChoice = autoLogicBox.SelectedIndex;
+
+                if (VariableBpmCommon.Enable)
+                {
+                    myVegas.RefreshBpmList();
+                }
+                SetFocusToMainTrackView();
+            };
+
+            label = new Label
+            {
+                Margin = new Padding(6, 9, 0, 6),
                 Text = L.Interval,
                 AutoSize = true
             };
@@ -572,7 +619,8 @@ namespace VariableBpm
             {
                 AutoSize = true,
                 Margin = new Padding(9, 6, 6, 6),
-                Text = interval.ToString()
+                Text = interval.ToString(),
+                Dock = DockStyle.Fill
             };
             settingsPanel.Controls.Add(intervalBox);
 
@@ -588,6 +636,39 @@ namespace VariableBpm
                 }
             };
 
+            label = new Label
+            {
+                Margin = new Padding(6, 9, 0, 6),
+                Text = L.RippleForMarkers,
+                AutoSize = true
+            };
+            settingsPanel.Controls.Add(label);
+
+            ComboBox autoRippleBox = new ComboBox
+            {
+                AutoSize = true,
+                Margin = new Padding(9, 6, 11, 6),
+                DataSource = L.RippleForMarkersType,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill
+            };
+            settingsPanel.Controls.Add(autoRippleBox);
+
+            autoRippleBox.SelectedIndexChanged += delegate (object o, EventArgs e)
+            {
+                VariableBpmCommon.Settings.RippleForMarkersChoice = autoRippleBox.SelectedIndex;
+                SetFocusToMainTrackView();
+            };
+
+            this.Load += delegate (object o, EventArgs e)
+            {
+                autoLogicBox.SelectedIndex = VariableBpmCommon.Settings.AutoLogicChoice;
+                autoRippleBox.SelectedIndex = VariableBpmCommon.Settings.RippleForMarkersChoice;
+            };
+
+            settingsPanel.Controls.Add(new Label());
+            settingsPanel.Controls.Add(new Label());
+
             CheckBox autoStartBox = new CheckBox
             {
                 Text = L.AutoStart,
@@ -595,8 +676,8 @@ namespace VariableBpm
                 AutoSize = true,
                 Checked = VariableBpmCommon.Settings.AutoStart
             };
-
             settingsPanel.Controls.Add(autoStartBox);
+            settingsPanel.SetColumnSpan(autoStartBox, 2);
 
             autoStartBox.CheckedChanged += delegate (object o, EventArgs e)
             {
@@ -613,6 +694,7 @@ namespace VariableBpm
             };
 
             settingsPanel.Controls.Add(midiCompatibilityModeBox);
+            settingsPanel.SetColumnSpan(midiCompatibilityModeBox, 2);
 
             midiCompatibilityModeBox.CheckedChanged += delegate (object o, EventArgs e)
             {
@@ -622,22 +704,6 @@ namespace VariableBpm
             this.Closed += delegate (object o, EventArgs e)
             {
                 VariableBpmCommon.Settings.SaveToFile();
-            };
-
-            CheckBox autoRippleBox = new CheckBox
-            {
-                Text = L.RippleForMarkers,
-                Margin = new Padding(6, 3, 0, 3),
-                AutoSize = true,
-                Checked = VariableBpmCommon.Settings.RippleForMarkers
-            };
-            
-            settingsPanel.Controls.Add(autoRippleBox);
-
-            autoRippleBox.CheckedChanged += delegate (object o, EventArgs e)
-            {
-                VariableBpmCommon.Settings.RippleForMarkers = autoRippleBox.Checked;
-                SetFocusToMainTrackView();
             };
 
             this.ResumeLayout(false);
