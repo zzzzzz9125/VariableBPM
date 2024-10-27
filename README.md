@@ -5,7 +5,7 @@ VEGAS Pro is known as a video software that's good at editing audio. However, to
 
 **With this extension, you can now label tempo values in your projects and display tempo changes in real time on the grid in VEGAS Pro.**
 
-![image](https://github.com/user-attachments/assets/f9c0ea75-44b6-4789-bcad-f191aed2eb96)
+![image](https://github.com/user-attachments/assets/09dda1b3-8987-4608-8d10-22e184e3a5f0)
 
 <br>
 
