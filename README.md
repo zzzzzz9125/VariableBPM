@@ -10,7 +10,7 @@ VEGAS Pro is known as a video software that's good at editing audio. However, to
 <br>
 
 ### Install
-Go to [Latest Releases](https://github.com/zzzzzz9125/Miscz/releases/) to download the .zip file. Unzip and place all the files inside it into the extension folder. `VariableBpm_13.dll` is for Sony Vegas Pro 13, and `VariableBpm.dll` is for Magix Vegas Pro 14+.
+Go to [Latest Releases](https://github.com/zzzzzz9125/VariableBPM/releases/) to download the .zip file. Unzip and place all the files inside it into the extension folder. `VariableBpm_13.dll` is for Sony Vegas Pro 13, and `VariableBpm.dll` is for Magix Vegas Pro 14+.
 
 **The most recommended path is this one, which allows both Sony and Magix versions to use this extension:** `C:\ProgramData\Sony\VEGAS Pro\Application Extensions\`
 
